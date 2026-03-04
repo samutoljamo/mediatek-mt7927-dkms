@@ -1,0 +1,14 @@
+diff --git a/mt7925/mcu.c b/mt7925/mcu.c
+index 8b5ffb2..d0001e0 100644
+--- a/mt7925/mcu.c
++++ b/mt7925/mcu.c
+@@ -2332,6 +2332,9 @@ void mt7925_mcu_bss_rlm_tlv(struct sk_buff *skb, struct mt76_phy *phy,
+ 	case NL80211_CHAN_WIDTH_160:
+ 		req->bw = CMD_CBW_160MHZ;
+ 		break;
++	case NL80211_CHAN_WIDTH_320:
++		req->bw = CMD_CBW_320MHZ;
++		break;
+ 	case NL80211_CHAN_WIDTH_5:
+ 		req->bw = CMD_CBW_5MHZ;
+ 		break;
