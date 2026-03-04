@@ -147,6 +147,16 @@ index 4a930c1..9d0a0ae 100644
  		mt7925_abort_roc(mvif->phy, &mvif->bss_conf);
  
  		mt792x_mutex_acquire(dev);
+@@ -2091,7 +2124,7 @@ mt7925_change_vif_links(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
+ 		rcu_assign_pointer(mvif->sta.link[link_id], NULL);
+ 
+-		if (mconf != &mvif->bss_conf)
++		if (mconfs[link_id] != &mvif->bss_conf)
+ 			devm_kfree(dev->mt76.dev, mconfs[link_id]);
+-		if (mlink != &mvif->sta.deflink)
++		if (mlinks[link_id] != &mvif->sta.deflink)
+ 			devm_kfree(dev->mt76.dev, mlinks[link_id]);
+ 	}
 @@ -2119,9 +2152,12 @@ static int mt7925_assign_vif_chanctx(struct ieee80211_hw *hw,
  {
  	struct mt792x_chanctx *mctx = (struct mt792x_chanctx *)ctx->drv_priv;
@@ -386,6 +396,14 @@ index 7780553..8e3a1f5 100644
 +	u8 str_opmode;
 +	u8 link_opmode;
 +	u8 __rsv[2];
+ } __packed;
+@@ -456,7 +457,7 @@ struct sta_rec_mld {
+ 	struct {
+ 		__le16 wlan_id;
+ 		u8 bss_idx;
+ 		u8 rsv;
+-	} __packed link[2];
++	} __packed link[3];
  } __packed;
 
 diff --git a/mt7925/mt7925.h b/mt7925/mt7925.h
