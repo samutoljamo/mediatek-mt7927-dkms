@@ -33,6 +33,7 @@ device ID and firmware patches not yet in mainline. Distributed as an
 | TP-Link Archer TBE550E PCIe | 0489:e116 | 14c3:7927 |
 | ASUS ProArt X870E | 0489:e13a | 14c3:7927 |
 | ASUS X870E-E | 13d3:3588 | 14c3:7927 |
+| Gigabyte X870E Aorus Master X3D | 0489:e10f | 14c3:7927 |
 | Gigabyte Z790 AORUS MASTER X | 0489:e10f | 14c3:7927 |
 
 Check if your hardware is detected:
