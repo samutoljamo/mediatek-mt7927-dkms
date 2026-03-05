@@ -9,16 +9,14 @@ A full MT7927 reset requires re-running the DMA initialization sequence,
 which is not yet implemented in the recovery path. Return -EOPNOTSUPP
 with a warning so users know to reload the module.
 
-Assisted-by: Claude Code <noreply@anthropic.com> [claude-opus-4-6]
 Signed-off-by: Javier Tia <floss@jetm.me>
----
+
+31bfb73a5c6ceb4fb953c509f4cb85b136b1f06f
 diff --git a/mt7925/pci_mac.c b/mt7925/pci_mac.c
-index 1626a36..9c66e48 100644
+index 1626a3684082..cf578a2cdc68 100644
 --- a/mt7925/pci_mac.c
 +++ b/mt7925/pci_mac.c
-@@ -72,6 +72,14 @@ int mt7925e_mac_reset(struct mt792x_dev *dev)
- 	const struct mt792x_irq_map *irq_map = dev->irq_map;
- 	int i, err;
+@@ -74,2 +74,10 @@ int mt7925e_mac_reset(struct mt792x_dev *dev)
  
 +	/* MT7927: CLR_OWN and WPDMA reset destroy DMA ring configuration.
 +	 * A full reset requires re-running mt7927_dma_init() which is not
@@ -29,5 +27,3 @@ index 1626a36..9c66e48 100644
 +	}
 +
  	mt792xe_mcu_drv_pmctrl(dev);
- 
- 	mt76_connac_free_pending_tx_skbs(&dev->pm, NULL);

@@ -11,20 +11,16 @@ Add FW_DWLD_BYPASS_DMASHDL to the existing is_mt7927() block in
 mt792x_dma_enable() so all three MT7927-specific GLO_CFG bits are
 consistently restored after PM wake.
 
-Assisted-by: Claude Code <noreply@anthropic.com> [claude-opus-4-6]
 Signed-off-by: Javier Tia <floss@jetm.me>
----
+
+9636166a349dbc2f219605cf73d9239388edde7b
 diff --git a/mt792x_dma.c b/mt792x_dma.c
-index 04c0663..14178bd 100644
+index 32364f19007d..95082d64fb69 100644
 --- a/mt792x_dma.c
 +++ b/mt792x_dma.c
-@@ -184,7 +184,8 @@ int mt792x_dma_enable(struct mt792x_dev *dev)
- 
- 	if (is_mt7927(&dev->mt76)) {
+@@ -170,3 +170,4 @@ int mt792x_dma_enable(struct mt792x_dev *dev)
  		mt76_set(dev, MT_WFDMA0_GLO_CFG,
 -			 MT_WFDMA0_GLO_CFG_ADDR_EXT_EN);
 +			 MT_WFDMA0_GLO_CFG_ADDR_EXT_EN |
 +			 MT_WFDMA0_GLO_CFG_FW_DWLD_BYPASS_DMASHDL);
  		mt76_clear(dev, MT_WFDMA0_GLO_CFG,
- 			   MT_WFDMA0_GLO_CFG_CSR_LBK_RX_Q_SEL_EN);
- 	}

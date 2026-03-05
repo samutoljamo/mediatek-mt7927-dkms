@@ -1,0 +1,107 @@
+wifi: mt76: mt7925: fix EAPOL failure by correcting connection state progression
+
+The MT7925 firmware requires explicit connection state transitions
+(CONNECT -> PORT_SECURE) during 802.1X authentication. Without this,
+the firmware sends EAPOL key 2/4 with ack=0 and the AP never receives
+it, causing 4-way handshake timeout on WPA2/WPA3 networks.
+
+Split the connection state handling: send CONN_STATE_CONNECT during
+association and CONN_STATE_PORT_SECURE after authorization via a new
+mt7925_mcu_sta_authorize() function called from the STA_EVENT_AUTHORIZE
+callback.
+
+Assisted-by: Claude Code <noreply@anthropic.com> [claude-opus-4-6]
+Signed-off-by: Javier Tia <floss@jetm.me>
+
+cdc01eb2d327c6dbc431c21f59d8ede99a735266
+diff --git a/mt76_connac_mcu.h b/mt76_connac_mcu.h
+index 8d59cf43f0e2..93d64679d98e 100644
+--- a/mt76_connac_mcu.h
++++ b/mt76_connac_mcu.h
+@@ -1781,2 +1781,3 @@ struct mt76_sta_cmd_info {
+ 	int cmd;
++	int conn_state;
+ 	u8 rcpi;
+diff --git a/mt7925/main.c b/mt7925/main.c
+index 4e1265886f20..a303c94c0f24 100644
+--- a/mt7925/main.c
++++ b/mt7925/main.c
+@@ -1091,4 +1091,22 @@ int mt7925_mac_sta_event(struct mt76_dev *mdev, struct ieee80211_vif *vif,
+ {
++	struct mt792x_dev *dev = container_of(mdev, struct mt792x_dev, mt76);
+ 	struct ieee80211_link_sta *link_sta = &sta->deflink;
+ 
++	if (ev == MT76_STA_EVENT_AUTHORIZE) {
++		int ret;
++
++		if (ieee80211_vif_is_mld(vif)) {
++			struct mt792x_sta *msta;
++
++			msta = (struct mt792x_sta *)sta->drv_priv;
++			link_sta = mt792x_sta_to_link_sta(vif, sta,
++							  msta->deflink_id);
++		}
++
++		mt792x_mutex_acquire(dev);
++		ret = mt7925_mcu_sta_authorize(dev, link_sta, vif);
++		mt792x_mutex_release(dev);
++		return ret;
++	}
++
+ 	if (ev != MT76_STA_EVENT_ASSOC)
+diff --git a/mt7925/mcu.c b/mt7925/mcu.c
+index 8b5ffb240d52..29e9369eac99 100644
+--- a/mt7925/mcu.c
++++ b/mt7925/mcu.c
+@@ -1974,4 +1974,3 @@ mt7925_mcu_sta_cmd(struct mt76_phy *phy,
+ 
+-	conn_state = info->enable ? CONN_STATE_PORT_SECURE :
+-				    CONN_STATE_DISCONNECT;
++	conn_state = info->conn_state;
+ 
+@@ -2039,2 +2038,35 @@ int mt7925_mcu_sta_update(struct mt792x_dev *dev,
+ 
++	if (!enable)
++		info.conn_state = CONN_STATE_DISCONNECT;
++	else if (state == MT76_STA_INFO_STATE_ASSOC)
++		info.conn_state = CONN_STATE_CONNECT;
++	else
++		info.conn_state = CONN_STATE_DISCONNECT;
++
++	return mt7925_mcu_sta_cmd(&dev->mphy, &info);
++}
++
++int mt7925_mcu_sta_authorize(struct mt792x_dev *dev,
++			     struct ieee80211_link_sta *link_sta,
++			     struct ieee80211_vif *vif)
++{
++	struct mt792x_vif *mvif = (struct mt792x_vif *)vif->drv_priv;
++	struct mt792x_sta *msta = (struct mt792x_sta *)link_sta->sta->drv_priv;
++	struct mt792x_link_sta *mlink = mt792x_sta_to_link(msta,
++							   link_sta->link_id);
++	int rssi = -ewma_rssi_read(&mvif->bss_conf.rssi);
++	struct mt76_sta_cmd_info info = {
++		.link_sta = link_sta,
++		.vif = vif,
++		.link_conf = &vif->bss_conf,
++		.enable = true,
++		.cmd = MCU_UNI_CMD(STA_REC_UPDATE),
++		.state = MT76_STA_INFO_STATE_ASSOC,
++		.offload_fw = true,
++		.rcpi = to_rcpi(rssi),
++		.wcid = &mlink->wcid,
++		.newly = false,
++		.conn_state = CONN_STATE_PORT_SECURE,
++	};
++
+ 	return mt7925_mcu_sta_cmd(&dev->mphy, &info);
+diff --git a/mt7925/mt7925.h b/mt7925/mt7925.h
+index ba3d2c4de4ce..995a4aa836d9 100644
+--- a/mt7925/mt7925.h
++++ b/mt7925/mt7925.h
+@@ -261,2 +261,5 @@ int mt7925_mcu_sta_update(struct mt792x_dev *dev,
+ 			  enum mt76_sta_info_state state);
++int mt7925_mcu_sta_authorize(struct mt792x_dev *dev,
++			     struct ieee80211_link_sta *link_sta,
++			     struct ieee80211_vif *vif);
+ int mt7925_mcu_set_chan_info(struct mt792x_phy *phy, u16 tag);

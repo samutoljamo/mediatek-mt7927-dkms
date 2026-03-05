@@ -19,16 +19,14 @@ WFDMA.
 Ring layout and prefetch values derived from Loong0x00's
 reverse-engineered MT7927 driver.
 
-Assisted-by: Claude Code <noreply@anthropic.com> [claude-opus-4-6]
 Signed-off-by: Javier Tia <floss@jetm.me>
----
+
+892926dbfc62adc50a4a6720bc3439fa80132e26
 diff --git a/mt7925/mt7925.h b/mt7925/mt7925.h
-index 6b9bf1b..d476b13 100644
+index 6b9bf1b89032..ba3d2c4de4ce 100644
 --- a/mt7925/mt7925.h
 +++ b/mt7925/mt7925.h
-@@ -126,6 +126,13 @@ enum mt7925_rxq_id {
- 	MT7925_RXQ_MCU_WM2, /* for tx done */
- };
+@@ -128,2 +128,9 @@ enum mt7925_rxq_id {
  
 +/* MT7927 uses different RX ring indices than MT7925 */
 +enum mt7927_rxq_id {
@@ -38,15 +36,11 @@ index 6b9bf1b..d476b13 100644
 +};
 +
  enum {
- 	MODE_OPEN = 0,
- 	MODE_SHARED = 1,
 diff --git a/mt7925/pci.c b/mt7925/pci.c
-index 2b3334e..6f83c6a 100644
+index c16ec05c5601..ca9ccfe9975c 100644
 --- a/mt7925/pci.c
 +++ b/mt7925/pci.c
-@@ -324,6 +324,127 @@ static void mt7927_cbtop_remap(struct mt792x_dev *dev)
- 	mt76_rr(dev, MT_CBINFRA_MISC0_REMAP_WF);
- }
+@@ -326,2 +326,123 @@ static void mt7927_cbtop_remap(struct mt792x_dev *dev)
  
 +static int mt7927_dma_init(struct mt792x_dev *dev)
 +{
@@ -170,11 +164,7 @@ index 2b3334e..6f83c6a 100644
 +};
 +
  static int mt7925_pci_probe(struct pci_dev *pdev,
- 			    const struct pci_device_id *id)
- {
-@@ -417,7 +538,10 @@ static int mt7925_pci_probe(struct pci_dev *pdev,
- 	dev = container_of(mdev, struct mt792x_dev, mt76);
- 	dev->fw_features = features;
+@@ -419,3 +540,6 @@ static int mt7925_pci_probe(struct pci_dev *pdev,
  	dev->hif_ops = &mt7925_pcie_ops;
 -	dev->irq_map = &irq_map;
 +	if (is_mt7927_hw)
@@ -182,11 +172,7 @@ index 2b3334e..6f83c6a 100644
 +	else
 +		dev->irq_map = &irq_map;
  	mt76_mmio_init(&dev->mt76, pcim_iomap_table(pdev)[0]);
- 	tasklet_init(&mdev->irq_tasklet, mt792x_irq_tasklet, (unsigned long)dev);
- 
-@@ -489,7 +613,10 @@ static int mt7925_pci_probe(struct pci_dev *pdev,
- 	if (ret)
- 		goto err_free_dev;
+@@ -491,3 +615,6 @@ static int mt7925_pci_probe(struct pci_dev *pdev,
  
 -	ret = mt7925_dma_init(dev);
 +	if (is_mt7927_hw)
@@ -194,15 +180,11 @@ index 2b3334e..6f83c6a 100644
 +	else
 +		ret = mt7925_dma_init(dev);
  	if (ret)
- 		goto err_free_irq;
- 
 diff --git a/mt792x_dma.c b/mt792x_dma.c
-index 002aece..6c3d952 100644
+index 1ddec7788b66..3177c6cc6eb5 100644
 --- a/mt792x_dma.c
 +++ b/mt792x_dma.c
-@@ -90,7 +90,23 @@ EXPORT_SYMBOL_GPL(mt792x_rx_poll_complete);
- #define PREFETCH(base, depth)	((base) << 16 | (depth))
- static void mt792x_dma_prefetch(struct mt792x_dev *dev)
+@@ -92,3 +92,19 @@ static void mt792x_dma_prefetch(struct mt792x_dev *dev)
  {
 -	if (is_mt7925(&dev->mt76)) {
 +	if (is_mt7927(&dev->mt76)) {
@@ -223,15 +205,11 @@ index 002aece..6c3d952 100644
 +		mt76_wr(dev, MT_WFDMA0_TX_RING0_EXT_CTRL, PREFETCH(0x0280, 0x4));
 +	} else if (is_mt7925(&dev->mt76)) {
  		/* rx ring */
- 		mt76_wr(dev, MT_WFDMA0_RX_RING0_EXT_CTRL, PREFETCH(0x0000, 0x4));
- 		mt76_wr(dev, MT_WFDMA0_RX_RING1_EXT_CTRL, PREFETCH(0x0040, 0x4));
 diff --git a/mt792x_regs.h b/mt792x_regs.h
-index 2a93690..658c757 100644
+index 0f75dca0a96c..5497cfaab8d7 100644
 --- a/mt792x_regs.h
 +++ b/mt792x_regs.h
-@@ -365,6 +365,16 @@
- #define MT_WFDMA_EXT_CSR_HIF_MISC	MT_WFDMA_EXT_CSR(0x44)
- #define MT_WFDMA_EXT_CSR_HIF_MISC_BUSY	BIT(0)
+@@ -365,2 +365,12 @@
  
 +/* MT7927 packed prefetch registers */
 +#define MT_WFDMA_PREFETCH_CTRL		MT_WFDMA_EXT_CSR(0x30)
@@ -244,5 +222,3 @@ index 2a93690..658c757 100644
 +#define MT_WFDMA0_GLO_CFG_EXT1		MT_WFDMA0(0x2b4)
 +
  #define MT_SWDEF_BASE			0x41f200
- #define MT_SWDEF(ofs)			(MT_SWDEF_BASE + (ofs))
- #define MT_SWDEF_MODE			MT_SWDEF(0x3c)

@@ -22,16 +22,14 @@ configured at that point - the ROM's WFDMA init would fail.
 Register values derived from Loong0x00's reverse-engineered MT7927
 driver.
 
-Assisted-by: Claude Code <noreply@anthropic.com> [claude-opus-4-6]
 Signed-off-by: Javier Tia <floss@jetm.me>
----
+
+ed0992e00b736f2ef43214ad33ce42d30a4f4d76
 diff --git a/mt7925/pci.c b/mt7925/pci.c
-index 54eac5c..2b3334e 100644
+index 54eac5c6e509..c16ec05c5601 100644
 --- a/mt7925/pci.c
 +++ b/mt7925/pci.c
-@@ -270,6 +270,60 @@ static int mt7925_dma_init(struct mt792x_dev *dev)
- 	return mt792x_dma_enable(dev);
- }
+@@ -272,2 +272,56 @@ static int mt7925_dma_init(struct mt792x_dev *dev)
  
 +static int mt7927_chip_init(struct mt792x_dev *dev)
 +{
@@ -88,25 +86,16 @@ index 54eac5c..2b3334e 100644
 +}
 +
  static int mt7925_pci_probe(struct pci_dev *pdev,
- 			    const struct pci_device_id *id)
- {
-@@ -314,6 +368,7 @@ static int mt7925_pci_probe(struct pci_dev *pdev,
- 	struct mt76_bus_ops *bus_ops;
- 	struct mt792x_dev *dev;
+@@ -316,2 +370,3 @@ static int mt7925_pci_probe(struct pci_dev *pdev,
  	struct mt76_dev *mdev;
 +	bool is_mt7927_hw;
  	u8 features;
- 	int ret;
- 	u16 cmd;
-@@ -385,24 +440,45 @@ static int mt7925_pci_probe(struct pci_dev *pdev,
- 	if (!mt7925_disable_aspm && mt76_pci_aspm_supported(pdev))
- 		dev->aspm_supported = true;
+@@ -387,2 +442,4 @@ static int mt7925_pci_probe(struct pci_dev *pdev,
  
 +	is_mt7927_hw = (pdev->device == 0x6639 || pdev->device == 0x7927);
 +
  	ret = __mt792x_mcu_fw_pmctrl(dev);
- 	if (ret)
- 		goto err_free_dev;
+@@ -391,5 +448,10 @@ static int mt7925_pci_probe(struct pci_dev *pdev,
  
 -	ret = __mt792xe_mcu_drv_pmctrl(dev);
 -	if (ret)
@@ -120,10 +109,7 @@ index 54eac5c..2b3334e 100644
 +	if (is_mt7927_hw)
 +		mt7927_cbtop_remap(dev);
  
- 	mdev->rev = (mt76_rr(dev, MT_HW_CHIPID) << 16) |
- 		    (mt76_rr(dev, MT_HW_REV) & 0xff);
- 
- 	dev_info(mdev->dev, "ASIC revision: %04x\n", mdev->rev);
+@@ -400,7 +462,21 @@ static int mt7925_pci_probe(struct pci_dev *pdev,
  
 -	mt76_rmw_field(dev, MT_HW_EMI_CTL, MT_HW_EMI_CTL_SLPPROT_EN, 1);
 +	/* Force chip ID for MT7927 hardware if CHIPID read returns garbage */
@@ -149,15 +135,11 @@ index 54eac5c..2b3334e 100644
 +			goto err_free_dev;
 +	}
  
- 	mt76_wr(dev, irq_map.host_irq_enable, 0);
- 
 diff --git a/mt792x_regs.h b/mt792x_regs.h
-index 7ddde92..2a93690 100644
+index acf627aed609..0f75dca0a96c 100644
 --- a/mt792x_regs.h
 +++ b/mt792x_regs.h
-@@ -486,4 +486,22 @@
- #define WFSYS_SW_RST_B			BIT(0)
- #define WFSYS_SW_INIT_DONE		BIT(4)
+@@ -486,2 +486,20 @@
  
 +/* CBInfra registers - MT7927 combo chip */
 +#define MT_CBINFRA_WAKEPU_TOP		0xe01a0

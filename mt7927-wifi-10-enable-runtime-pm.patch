@@ -24,16 +24,14 @@ With the DMA recovery path now fully MT7927-aware, remove the
 is_mt7927() guard that disabled runtime PM and deep sleep. Let the
 standard mt792x power management work for MT7927 hardware.
 
-Assisted-by: Claude Code <noreply@anthropic.com> [claude-opus-4-6]
 Signed-off-by: Javier Tia <floss@jetm.me>
----
+
+12acaac9b87fd6aa799feab308759c284d921978
 diff --git a/mt7925/init.c b/mt7925/init.c
-index d0675d7..d501a82 100644
+index 1e9eadca3988..84af52a0176d 100644
 --- a/mt7925/init.c
 +++ b/mt7925/init.c
-@@ -242,10 +242,7 @@ int mt7925_register_device(struct mt792x_dev *dev)
- 	dev->pm.idle_timeout = MT792x_PM_TIMEOUT;
- 	dev->pm.stats.last_wake_event = jiffies;
+@@ -244,6 +244,3 @@ int mt7925_register_device(struct mt792x_dev *dev)
  	dev->pm.stats.last_doze_event = jiffies;
 -	/* MT7927: disable power management. Every CLR_OWN triggers the
 -	 * ROM to reinitialize WFDMA, destroying DMA ring configuration.
@@ -41,30 +39,22 @@ index d0675d7..d501a82 100644
 -	if (!mt76_is_usb(&dev->mt76) && !is_mt7927(&dev->mt76)) {
 +	if (!mt76_is_usb(&dev->mt76)) {
  		dev->pm.enable_user = true;
- 		dev->pm.enable = true;
- 		dev->pm.ds_enable_user = true;
 diff --git a/mt7925/pci.c b/mt7925/pci.c
-index f27f329..a369508 100644
+index 0dec25b320f8..0f76d9197230 100644
 --- a/mt7925/pci.c
 +++ b/mt7925/pci.c
-@@ -416,8 +416,8 @@ static int mt7927_dma_init(struct mt792x_dev *dev)
- 	napi_enable(&dev->mt76.tx_napi);
- 
+@@ -418,4 +418,4 @@ static int mt7927_dma_init(struct mt792x_dev *dev)
  	/* MT7927-specific GLO_CFG bits before DMA enable */
 -	mt76_set(dev, MT_WFDMA0_GLO_CFG, BIT(26));   /* ADDR_EXT_EN */
 -	mt76_clear(dev, MT_WFDMA0_GLO_CFG, BIT(20)); /* CSR_LBK_RX_Q_SEL_EN */
 +	mt76_set(dev, MT_WFDMA0_GLO_CFG, MT_WFDMA0_GLO_CFG_ADDR_EXT_EN);
 +	mt76_clear(dev, MT_WFDMA0_GLO_CFG, MT_WFDMA0_GLO_CFG_CSR_LBK_RX_Q_SEL_EN);
  	mt76_set(dev, MT_WFDMA0_GLO_CFG_EXT1, BIT(28));
- 	mt76_set(dev, MT_WFDMA0_GLO_CFG,
- 		 MT_WFDMA0_GLO_CFG_FW_DWLD_BYPASS_DMASHDL);
 diff --git a/mt792x_dma.c b/mt792x_dma.c
-index 6c3d952..04c0663 100644
+index 3177c6cc6eb5..32364f19007d 100644
 --- a/mt792x_dma.c
 +++ b/mt792x_dma.c
-@@ -182,6 +182,13 @@ int mt792x_dma_enable(struct mt792x_dev *dev)
- 	mt76_set(dev, MT_WFDMA0_GLO_CFG,
- 		 MT_WFDMA0_GLO_CFG_TX_DMA_EN | MT_WFDMA0_GLO_CFG_RX_DMA_EN);
+@@ -168,2 +168,9 @@ int mt792x_dma_enable(struct mt792x_dev *dev)
  
 +	if (is_mt7927(&dev->mt76)) {
 +		mt76_set(dev, MT_WFDMA0_GLO_CFG,
@@ -74,19 +64,13 @@ index 6c3d952..04c0663 100644
 +	}
 +
  	if (is_mt7925(&dev->mt76)) {
- 		mt76_rmw(dev, MT_UWFDMA0_GLO_CFG_EXT1, BIT(28), BIT(28));
- 		mt76_set(dev, MT_WFDMA0_INT_RX_PRI, 0x0F00);
 diff --git a/mt792x_regs.h b/mt792x_regs.h
-index 658c757..237d63f 100644
+index 5497cfaab8d7..b364d0038653 100644
 --- a/mt792x_regs.h
 +++ b/mt792x_regs.h
-@@ -301,7 +301,9 @@
- #define MT_WFDMA0_GLO_CFG_FIFO_LITTLE_ENDIAN	BIT(12)
- #define MT_WFDMA0_GLO_CFG_RX_WB_DDONE	BIT(13)
+@@ -301,3 +301,5 @@
  #define MT_WFDMA0_GLO_CFG_CSR_DISP_BASE_PTR_CHAIN_EN BIT(15)
 +#define MT_WFDMA0_GLO_CFG_CSR_LBK_RX_Q_SEL_EN	BIT(20)
  #define MT_WFDMA0_GLO_CFG_OMIT_RX_INFO_PFET2	BIT(21)
 +#define MT_WFDMA0_GLO_CFG_ADDR_EXT_EN		BIT(26)
  #define MT_WFDMA0_GLO_CFG_OMIT_RX_INFO	BIT(27)
- #define MT_WFDMA0_GLO_CFG_OMIT_TX_INFO	BIT(28)
- #define MT_WFDMA0_GLO_CFG_CLK_GAT_DIS	BIT(30)
