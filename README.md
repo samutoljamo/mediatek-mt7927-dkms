@@ -24,21 +24,23 @@ device ID and firmware patches not yet in mainline. Distributed as an
 | Device | BT USB ID | WiFi PCI ID |
 |--------|-----------|-------------|
 | ASUS ROG Crosshair X870E Hero | 0489:e13a | 14c3:7927 |
-| Lenovo Legion Pro 7 16ARX9 | 0489:e0fa | 14c3:7927 |
-| Lenovo Legion Pro 7 16AFR10H | - | 14c3:7927 |
-| Foxconn/Azurewave modules | - | 14c3:6639 |
-| AMD RZ738 (MediaTek MT7927) | - | 14c3:0738 |
-| TP-Link Archer TBE550E PCIe | 0489:e116 | 14c3:7927 |
-| ASUS ProArt X870E | 0489:e13a | 14c3:7927 |
+| ASUS ProArt X870E-Creator WiFi | 13d3:3588 | 14c3:6639 |
+| ASUS ROG Strix X870-I | - | 14c3:7927 |
 | ASUS X870E-E | 13d3:3588 | 14c3:7927 |
 | Gigabyte X870E Aorus Master X3D | 0489:e10f | 14c3:7927 |
 | Gigabyte Z790 AORUS MASTER X | 0489:e10f | 14c3:7927 |
+| Lenovo Legion Pro 7 16ARX9 | 0489:e0fa | 14c3:7927 |
+| Lenovo Legion Pro 7 16AFR10H | 0489:e0fa | 14c3:7927 |
+| TP-Link Archer TBE550E PCIe | 0489:e116 | 14c3:7927 |
+| EDUP EP-MT7927BE M.2 | - | 14c3:7927 |
+| Foxconn/Azurewave M.2 modules | - | 14c3:6639 |
+| AMD RZ738 (MediaTek MT7927) | - | 14c3:0738 |
 
 Check if your hardware is detected:
 
 ```bash
 lspci | grep -i 14c3          # WiFi (PCIe)
-lsusb | grep -iE '0489|13d3'  # Bluetooth (USB)
+lsusb | grep -iE '0489|13d3|0e8d'  # Bluetooth (USB)
 ```
 
 ## Naming guide
