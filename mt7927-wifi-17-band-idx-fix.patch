@@ -21,7 +21,8 @@ hardware band index, and use it throughout the driver:
 
 All changes guarded by is_mt7927() - no impact on MT7925 behavior.
 
-Independently discovered by marcin-fm and Loong0x00.
+Originally discovered and fixed by marcin-fm; Loong0x00 contributed
+additional improvements based on marcin-fm's patch.
 
 Co-developed-by: Marcin FM <marcin@lgic.pl>
 Signed-off-by: Marcin FM <marcin@lgic.pl>
