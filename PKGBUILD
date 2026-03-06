@@ -75,7 +75,7 @@ source=(
 )
 sha256sums=('4d9f3ff73214f68c0194ef02db9ca4b7ba713253ac1045441d4e9f352bc22e14'
             'e94c77671abe0d589faa01c1a9451f626b1fc45fb04f765b43fd0e126d01a436'
-            '9f4a0d13e782582c3f0cf59f66cfa0084d08473ada76067dbcb85ee8d9988b26'
+            '9a650dd025aab38e2bb5d116e08cce79a6d215bd16d6d7d20e768e24d05d080b'
             'bd29eefcec618ec17d6ff3b6521d8292a6e092c3cbbdd1fca93b63e4c86a7fec')
 
 # Auto-download via ASUS CDN token API.
