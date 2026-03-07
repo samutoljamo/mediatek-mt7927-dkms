@@ -45,3 +45,17 @@ else
     echo "compat: airoha_offload.h already present in kernel headers, skipped"
 fi
 
+# Fix 2: pp_page_to_nmdesc() (added in kernel commit 89ade7c, not in older kernels)
+# For page pool pages, netmem_desc overlays on struct page with identical layout,
+# so page->pp is equivalent to pp_page_to_nmdesc(page)->pp.
+if ! grep -q 'pp_page_to_nmdesc' "${KHEADERS}/include/net/netmem.h" 2>/dev/null; then
+    if grep -q 'pp_page_to_nmdesc' "${MT76_SRC}/mt76.h" 2>/dev/null; then
+        sed -i 's/pp_page_to_nmdesc(page)->pp/page->pp/g' "${MT76_SRC}/mt76.h"
+        echo "compat: replaced pp_page_to_nmdesc() with page->pp in mt76.h"
+    else
+        echo "compat: pp_page_to_nmdesc() not found in mt76.h, skipped"
+    fi
+else
+    echo "compat: pp_page_to_nmdesc() already in kernel headers, skipped"
+fi
+
