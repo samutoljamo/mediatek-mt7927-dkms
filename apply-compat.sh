@@ -63,7 +63,7 @@ fi
 # Older kernels don't have the int radio_idx parameter in ieee80211_ops
 # callbacks (config, set_rts_threshold, set/get_antenna, set_coverage_class).
 # mt76 never uses the parameter, so stripping it is safe.
-if ! grep -q 'int radio_idx' "${KHEADERS}/include/net/mac80211.h" 2>/dev/null; then
+if ! grep -q '(\*config)(struct ieee80211_hw \*hw, int radio_idx' "${KHEADERS}/include/net/mac80211.h" 2>/dev/null; then
     _radio_files=(
         "${MT76_SRC}/mt76.h"
         "${MT76_SRC}/mac80211.c"
