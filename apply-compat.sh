@@ -59,3 +59,51 @@ else
     echo "compat: pp_page_to_nmdesc() already in kernel headers, skipped"
 fi
 
+# Fix 3: radio_idx parameter in mac80211 ops (added in commit b74947b4f6ff)
+# Older kernels don't have the int radio_idx parameter in ieee80211_ops
+# callbacks (config, set_rts_threshold, set/get_antenna, set_coverage_class).
+# mt76 never uses the parameter, so stripping it is safe.
+if ! grep -q 'int radio_idx' "${KHEADERS}/include/net/mac80211.h" 2>/dev/null; then
+    _radio_files=(
+        "${MT76_SRC}/mt76.h"
+        "${MT76_SRC}/mac80211.c"
+        "${MT76_SRC}/mt792x.h"
+        "${MT76_SRC}/mt792x_core.c"
+        "${MT76_SRC}/mt7921/main.c"
+        "${MT76_SRC}/mt7925/main.c"
+    )
+    _fixed=0
+    for f in "${_radio_files[@]}"; do
+        if [[ -f "$f" ]] && grep -q 'int radio_idx' "$f" 2>/dev/null; then
+            sed -i 's/, int radio_idx//' "$f"
+            _fixed=$((_fixed + 1))
+        fi
+    done
+    if (( _fixed > 0 )); then
+        echo "compat: stripped radio_idx parameter from ${_fixed} file(s)"
+    else
+        echo "compat: radio_idx not found in mt76 sources, skipped"
+    fi
+else
+    echo "compat: radio_idx already in mac80211 headers, skipped"
+fi
+
+# Fix 4: system_percpu_wq (added in commit ee518f914cd9)
+# Older kernels use system_wq; system_percpu_wq was introduced later.
+if ! grep -q 'system_percpu_wq' "${KHEADERS}/include/linux/workqueue.h" 2>/dev/null; then
+    _fixed=0
+    for f in "${MT76_SRC}/mt7921/init.c" "${MT76_SRC}/mt7925/init.c"; do
+        if [[ -f "$f" ]] && grep -q 'system_percpu_wq' "$f" 2>/dev/null; then
+            sed -i 's/system_percpu_wq/system_wq/g' "$f"
+            _fixed=$((_fixed + 1))
+        fi
+    done
+    if (( _fixed > 0 )); then
+        echo "compat: replaced system_percpu_wq with system_wq in ${_fixed} file(s)"
+    else
+        echo "compat: system_percpu_wq not found in mt76 sources, skipped"
+    fi
+else
+    echo "compat: system_percpu_wq already in kernel headers, skipped"
+fi
+
