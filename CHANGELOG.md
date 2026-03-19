@@ -5,7 +5,16 @@ All notable changes to the MediaTek MT7927 DKMS package are documented here.
 Format: `v<pkgver>-<pkgrel>` where pkgver bumps for driver/patch changes
 and pkgrel bumps for PKGBUILD packaging changes.
 
-## [Unreleased]
+## [2.5-1] - 2026-03-19
+
+### Driver
+
+- mediatek-mt7927-dkms: Bump to version 2.5 and refactor patch series
+
+### Other
+- release: Validate remote URLs before push
+
+## [2.4-1]
 
 ### Documentation
 
@@ -110,4 +119,3 @@ and pkgrel bumps for PKGBUILD packaging changes.
 - test-driver: Add failure tracking and improve error detection
 - test-driver.sh: Expand diagnostic coverage for MT7927 hardware
 - test-driver: Add EHT/WiFi 7 capability and channel width checks
-
