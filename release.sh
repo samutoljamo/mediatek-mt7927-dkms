@@ -65,6 +65,18 @@ if git rev-parse "refs/tags/${new_tag}" >/dev/null 2>&1; then
 	exit 1
 fi
 
+# Validate remotes
+origin_url=$(git remote get-url origin 2>/dev/null || true)
+aur_url=$(git remote get-url aur 2>/dev/null || true)
+if [[ "$origin_url" != *"github.com"* ]]; then
+	echo "ERROR: 'origin' remote must point to GitHub (got: ${origin_url:-<not set>})"
+	exit 1
+fi
+if [[ "$aur_url" != *"aur.archlinux.org"* ]]; then
+	echo "ERROR: 'aur' remote must point to AUR (got: ${aur_url:-<not set>})"
+	exit 1
+fi
+
 # Check working tree is clean (except the files we're about to modify)
 if ! git diff --quiet --exit-code -- ':!PKGBUILD' ':!dkms.conf' ':!mediatek-mt7927-dkms.install' ':!CHANGELOG.md' ':!.SRCINFO'; then
 	echo "ERROR: Working tree has uncommitted changes"
