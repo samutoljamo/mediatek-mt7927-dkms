@@ -84,7 +84,27 @@ cd mediatek-mt7927-dkms
 makepkg -si
 ```
 
-### Other distributions (Fedora, Ubuntu, etc.)
+### Fedora / RPM-based
+
+```bash
+git clone https://github.com/jetm/mediatek-mt7927-dkms.git
+cd mediatek-mt7927-dkms
+sudo dnf install dkms kernel-devel make gcc python3 curl rpm-build
+make rpm
+sudo dnf install rpmbuild/RPMS/noarch/mediatek-mt7927-dkms-*.rpm
+```
+
+### Ubuntu / Debian
+
+```bash
+git clone https://github.com/jetm/mediatek-mt7927-dkms.git
+cd mediatek-mt7927-dkms
+sudo apt install dkms build-essential python3 curl dpkg-dev
+make deb
+sudo dpkg -i mediatek-mt7927-dkms_*.deb
+```
+
+### Manual (any distro)
 
 Supports kernels 6.17+. Requires `dkms`, `make`, `gcc`, `python3`, `curl`,
 and kernel headers.

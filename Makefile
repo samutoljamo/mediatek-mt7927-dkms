@@ -13,7 +13,7 @@ PYTHON         ?= python3
 TOPDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 STAMP  := $(SRCDIR)/.sources-done
 
-.PHONY: download sources install clean
+.PHONY: download sources install clean rpm deb
 
 # ── download ────────────────────────────────────────────────────────
 download:
@@ -118,6 +118,14 @@ install: sources
 	install -m644 $(TOPDIR)mt7927-wifi-*.patch "$(DESTDIR)$(DKMS_PREFIX)/patches/wifi/"
 	@echo "==> Install complete."
 
+# ── rpm ─────────────────────────────────────────────────────────────
+rpm:
+	"$(TOPDIR)build-rpm.sh"
+
+# ── deb ─────────────────────────────────────────────────────────────
+deb:
+	"$(TOPDIR)build-deb.sh"
+
 # ── clean ───────────────────────────────────────────────────────────
 clean:
-	rm -rf "$(SRCDIR)"
+	rm -rf "$(SRCDIR)" rpmbuild/
