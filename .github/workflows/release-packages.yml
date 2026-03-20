@@ -1,0 +1,39 @@
+name: Build release packages
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-rpm:
+    runs-on: ubuntu-latest
+    container: fedora:43
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: dnf install -y rpm-build make gcc python3 curl
+
+      - name: Build RPM
+        run: make rpm
+
+      - name: Upload RPM to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: rpmbuild/RPMS/noarch/*.rpm
+
+  build-deb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y dpkg-dev make gcc python3 curl
+
+      - name: Build DEB
+        run: make deb
+
+      - name: Upload DEB to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.deb"

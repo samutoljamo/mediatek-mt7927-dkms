@@ -45,7 +45,7 @@
 # Place the ZIP in this directory before running makepkg.
 
 pkgname=mediatek-mt7927-dkms
-pkgver=2.5
+pkgver=2.6
 pkgrel=1
 # Keywords: MT7927 MT7925 MT6639 MT7902 Filogic 380 WiFi 7 Bluetooth btusb mt7925e mt7921e
 pkgdesc="DKMS Bluetooth (MT6639) and WiFi (MT7925e/MT7902) modules for MediaTek MT7927 Filogic 380"
@@ -66,16 +66,16 @@ _driver_filename='DRV_WiFi_MTK_MT7925_MT7927_TP_W11_64_V5603998_20250709R.zip'
 _driver_sha256='b377fffa28208bb1671a0eb219c84c62fba4cd6f92161b74e4b0909476307cc8'
 
 # Kernel version the mt76 WiFi patches target
-_mt76_kver='6.19.6'
+_mt76_kver='6.19.9'
 
 source=(
   "https://cdn.kernel.org/pub/linux/kernel/v${_mt76_kver%%.*}.x/linux-${_mt76_kver}.tar.xz"
   'extract_firmware.py'
   'dkms.conf'
 )
-sha256sums=('4d9f3ff73214f68c0194ef02db9ca4b7ba713253ac1045441d4e9f352bc22e14'
+sha256sums=('c16068a3af12e3943dee3b1eef57ca70229c069128bfa1184fb3f48b219d55bf'
             '5410e79d1c9170264769c7149a78bf588ec85245c1556833605fc1c4657ba37a'
-            '5d7af5ab840124cebe83df601d6e26df6f560e3a6d93ec3687fb27950a1b87e4')
+            '7b96cb60f6b5322d6d8c27d49a7944f5d8fad16770defae27a264378f0febab9')
 
 # Auto-download via ASUS CDN token API
 _download_driver_zip() {

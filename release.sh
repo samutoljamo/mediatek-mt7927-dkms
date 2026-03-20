@@ -140,7 +140,10 @@ git tag "${new_tag}"
 echo ""
 echo "Pushing to origin and aur..."
 git push origin master
-git -c push.followTags=false push aur master
+# AUR rejects subdirectories (.github/). Create a filtered commit for AUR.
+aur_tree=$(git ls-tree HEAD | grep -v '.github' | git mktree)
+aur_commit=$(git commit-tree "${aur_tree}" -p HEAD -m "Release ${new_tag}")
+git -c push.followTags=false push aur "${aur_commit}:refs/heads/master"
 git -c push.followTags=false push origin "${new_tag}"
 
 # Create GitHub release
