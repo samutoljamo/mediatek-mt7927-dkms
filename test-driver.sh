@@ -12,12 +12,8 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-FAIL_COUNT=0
 ok() { echo "OK${1:+ ($1)}"; }
-fail() {
-	FAIL_COUNT=$((FAIL_COUNT + 1))
-	echo "FAIL${1:+ ($1)}"
-}
+fail() { echo "FAIL${1:+ ($1)}"; }
 skip() { echo "SKIP${1:+ ($1)}"; }
 na() { echo "N/A${1:+ ($1)}"; }
 
@@ -694,8 +690,7 @@ check_errors() {
 	else
 		local count
 		count="$(echo "$errors" | wc -l)"
-		FAIL_COUNT=$((FAIL_COUNT + 1))
-		echo "${count} error(s) found"
+		echo "FAIL (${count} error(s) found)"
 		echo "$errors" | tail -5 | while IFS= read -r line; do
 			echo "    $line"
 		done
@@ -739,8 +734,9 @@ main() {
 	data_result="$(check_data_path "$iface")"
 	errors_result="$(check_errors)"
 
-	# Print structured report
-	cat <<EOF
+	# Count failures from output (FAIL_COUNT doesn't propagate from subshells)
+	local report
+	report=$(cat <<EOF
 ## Driver Validation Report
 - Package: mediatek-mt7927-dkms ${pkg_ver}
 - Kernel: ${kernel_ver}
@@ -762,10 +758,15 @@ main() {
 - Data path: ${data_result}
 - Errors: ${errors_result}
 EOF
+)
+	echo "$report"
 
-	if ((FAIL_COUNT > 0)); then
+	local fail_count
+	fail_count=$(echo "$report" | grep -c 'FAIL' || true)
+
+	if ((fail_count > 0)); then
 		echo ""
-		echo "RESULT: ${FAIL_COUNT} check(s) failed"
+		echo "RESULT: ${fail_count} check(s) failed"
 		return 1
 	else
 		echo ""
