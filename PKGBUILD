@@ -21,7 +21,8 @@
 #   - TP-Link Archer TBE550E PCIe    (BT USB 0489:e116, E-key MT7927, extractable for laptop use)
 #   - ASUS ProArt X870E              (WiFi PCI 14c3:7927)
 #   - ASUS X870E-E                   (BT USB 13d3:3588, WiFi PCI 14c3:7927)
-#   - Gigabyte Z790 AORUS MASTER X   (BT USB 0489:e10f, WiFi PCI 14c3:7927)
+#   - Gigabyte Z790 AORUS MASTER X       (BT USB 0489:e10f, WiFi PCI 14c3:7927)
+#   - Gigabyte Z790 AORUS ELITE X WiFi7  (BT USB 0489:e10f, WiFi PCI 14c3:7927)
 #
 # MediaTek naming is confusing. Here's the map:
 #   MT7927 = combo module on the motherboard (WiFi 7 + BT 5.4, Filogic 380)
