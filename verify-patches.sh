@@ -14,10 +14,21 @@ set -euo pipefail
 
 DKMS_DIR="$(cd "$(dirname "$0")" && pwd)"
 KERNEL_TREE="${KERNEL_TREE:-$HOME/repos/personal/linux-stable}"
-UPSTREAM_BRANCH="${UPSTREAM_BRANCH:-mt7927-wifi-support-v3}"
 DKMS_BRANCH="${DKMS_BRANCH:-mt7927-wifi-dkms}"
 BASE_REF="${BASE_REF:-dkms-base}"
 MT76_SUBDIR="drivers/net/wireless/mediatek/mt76"
+
+# Auto-detect latest upstream branch if not set
+_detect_upstream_branch() {
+	git -C "$KERNEL_TREE" for-each-ref --format='%(refname:short)' \
+		'refs/heads/mt7927-wifi-support-v*' | sort -V | tail -1
+}
+UPSTREAM_BRANCH="${UPSTREAM_BRANCH:-$(_detect_upstream_branch)}"
+
+if [[ -z "$UPSTREAM_BRANCH" ]]; then
+	echo "ERROR: no mt7927-wifi-support-v* branch found in $KERNEL_TREE"
+	exit 1
+fi
 
 upstream_only=false
 for arg in "$@"; do
@@ -28,19 +39,67 @@ done
 
 errors=0
 
-# ── Step 1: Verify upstream patches match git branch ────────────────
-echo "==> Verifying upstream patches match git branch ($UPSTREAM_BRANCH)..."
+# Extract code changes from a git diff or patch file.
+# Groups by filename, preserves +/- polarity, sorts within each file group.
+_extract_changes() {
+	local source="$1" # "git:<commit>" or file path
+	local raw
 
+	if [[ "$source" == git:* ]]; then
+		local commit="${source#git:}"
+		raw=$(git -C "$KERNEL_TREE" diff "${commit}^..$commit" \
+			-- "$MT76_SUBDIR/" 2>/dev/null || true)
+	else
+		raw=$(cat "$source")
+	fi
+
+	# Output: "filename:polarity:line" sorted per file
+	echo "$raw" | awk '
+		/^diff --git/ {
+			# Extract filename from b/ path, strip any mt76 subdir prefix
+			fname = $NF
+			sub(/^b\//, "", fname)
+			sub(/^drivers\/net\/wireless\/mediatek\/mt76\//, "", fname)
+			next
+		}
+		/^\+[^+]/ { print fname ":" $0 }
+		/^-[^-]/  { print fname ":" $0 }
+	' | sort
+}
+
+# ── Step 0: Staleness check ─────────────────────────────────────────
 upstream_patches_dir="$DKMS_DIR/linux-stable/patches"
 if [[ ! -d "$upstream_patches_dir" ]]; then
 	echo "ERROR: upstream patches directory not found: $upstream_patches_dir"
 	exit 1
 fi
 
-# Count upstream commits (excluding cover letter commit and merge base)
+tip_file="$upstream_patches_dir/.git-tip"
+actual_tip=$(git -C "$KERNEL_TREE" rev-parse "$UPSTREAM_BRANCH")
+if [[ -f "$tip_file" ]]; then
+	recorded_tip=$(cat "$tip_file")
+	if [[ "$recorded_tip" != "$actual_tip" ]]; then
+		echo "WARNING: upstream patches may be stale"
+		echo "  Recorded tip: ${recorded_tip:0:12}"
+		echo "  Current tip:  ${actual_tip:0:12}"
+		echo "  Re-run: devtool patch-regen --cwd linux-stable"
+		echo ""
+	fi
+else
+	echo "NOTE: no .git-tip file found - staleness check skipped"
+	echo "  (will be created by future patch-regen runs)"
+	echo ""
+fi
+
+# ── Step 1: Verify upstream patches match git branch ────────────────
+echo "==> Verifying upstream patches match git branch ($UPSTREAM_BRANCH)..."
+
+# Use DKMS branch commit count as the authoritative series size.
+# Both branches must have the same number of patches.
+dkms_count=$(git -C "$KERNEL_TREE" rev-list --count "$DKMS_BRANCH" --not "$BASE_REF")
 mapfile -t upstream_commits < <(
 	git -C "$KERNEL_TREE" log --reverse --format='%H' \
-		"${UPSTREAM_BRANCH}~13..${UPSTREAM_BRANCH}"
+		"${UPSTREAM_BRANCH}~${dkms_count}..${UPSTREAM_BRANCH}"
 )
 
 upstream_patch_count=$(find "$upstream_patches_dir" -name '*.patch' ! -name '0000-*' | wc -l)
@@ -49,15 +108,12 @@ if ((upstream_patch_count != ${#upstream_commits[@]})); then
 	errors=$((errors + 1))
 fi
 
-# For each upstream commit, extract the mt76 diff and compare with the
-# corresponding patch file's diff hunks (added/removed lines only)
 for i in "${!upstream_commits[@]}"; do
 	n=$((i + 1))
 	nn=$(printf '%04d' "$n")
 	commit=${upstream_commits[$i]}
 	subject=$(git -C "$KERNEL_TREE" log -1 --format='%s' "$commit")
 
-	# Find matching patch file
 	patch_file=$(find "$upstream_patches_dir" -name "${nn}-*.patch" | head -1)
 	if [[ -z "$patch_file" ]]; then
 		echo "  FAIL: [$nn] no patch file for: $subject"
@@ -65,14 +121,8 @@ for i in "${!upstream_commits[@]}"; do
 		continue
 	fi
 
-	# Extract code changes from git (only +/- lines, strip leading +/-)
-	git_changes=$(git -C "$KERNEL_TREE" diff "${commit}^..$commit" \
-		-- "$MT76_SUBDIR/" |
-		grep -E '^\+[^+]|^-[^-]' | sed 's/^[+-]//' | sort)
-
-	# Extract code changes from patch file
-	patch_changes=$(grep -E '^\+[^+]|^-[^-]' "$patch_file" |
-		sed 's/^[+-]//' | sort)
+	git_changes=$(_extract_changes "git:$commit")
+	patch_changes=$(_extract_changes "$patch_file")
 
 	if [[ "$git_changes" == "$patch_changes" ]]; then
 		echo "  [$nn] OK: $subject"
@@ -108,14 +158,12 @@ if ((dkms_patch_count != ${#dkms_commits[@]})); then
 	errors=$((errors + 1))
 fi
 
-# For each DKMS commit, compare code changes
 for i in "${!dkms_commits[@]}"; do
 	n=$((i + 1))
 	nn=$(printf '%02d' "$n")
 	commit=${dkms_commits[$i]}
 	subject=$(git -C "$KERNEL_TREE" log -1 --format='%s' "$commit")
 
-	# Find matching DKMS patch file
 	patch_file=$(find "$DKMS_DIR" -maxdepth 1 -name "mt7927-wifi-${nn}-*.patch" | head -1)
 	if [[ -z "$patch_file" ]]; then
 		echo "  FAIL: [$nn] no DKMS patch for: $subject"
@@ -123,14 +171,8 @@ for i in "${!dkms_commits[@]}"; do
 		continue
 	fi
 
-	# Extract code changes from git (mt76 subdir, strip prefix)
-	git_changes=$(git -C "$KERNEL_TREE" diff "${commit}^..$commit" \
-		-- "$MT76_SUBDIR/" |
-		grep -E '^\+[^+]|^-[^-]' | sed 's/^[+-]//' | sort)
-
-	# Extract code changes from DKMS patch
-	patch_changes=$(grep -E '^\+[^+]|^-[^-]' "$patch_file" |
-		sed 's/^[+-]//' | sort)
+	git_changes=$(_extract_changes "git:$commit")
+	patch_changes=$(_extract_changes "$patch_file")
 
 	if [[ "$git_changes" == "$patch_changes" ]]; then
 		echo "  [$nn] OK: $subject"
@@ -142,16 +184,41 @@ for i in "${!dkms_commits[@]}"; do
 	fi
 done
 
-# ── Step 3: Cross-check upstream vs DKMS code changes ───────────────
+# ── Step 3: Cross-check upstream vs DKMS by subject match ───────────
 # DKMS patches may contain additional lines from mt7902 merge resolution.
-# Verify that all upstream code changes appear in the DKMS patch (subset check).
+# Match by commit subject, not index position.
 echo ""
 echo "==> Cross-checking upstream vs DKMS patches..."
 
-for i in "${!upstream_commits[@]}"; do
+for i in "${!dkms_commits[@]}"; do
 	n=$((i + 1))
-	nn_up=$(printf '%04d' "$n")
 	nn_dk=$(printf '%02d' "$n")
+	dkms_commit=${dkms_commits[$i]}
+	subject=$(git -C "$KERNEL_TREE" log -1 --format='%s' "$dkms_commit")
+
+	# Find matching upstream commit by subject
+	up_commit=""
+	for uc in "${upstream_commits[@]}"; do
+		up_subj=$(git -C "$KERNEL_TREE" log -1 --format='%s' "$uc")
+		if [[ "$up_subj" == "$subject" ]]; then
+			up_commit="$uc"
+			break
+		fi
+	done
+
+	if [[ -z "$up_commit" ]]; then
+		echo "  [$n] SKIP: no upstream match for: $subject"
+		continue
+	fi
+
+	# Find corresponding patch files
+	nn_up=""
+	for j in "${!upstream_commits[@]}"; do
+		if [[ "${upstream_commits[$j]}" == "$up_commit" ]]; then
+			nn_up=$(printf '%04d' "$((j + 1))")
+			break
+		fi
+	done
 
 	up_file=$(find "$upstream_patches_dir" -name "${nn_up}-*.patch" | head -1)
 	dk_file=$(find "$DKMS_DIR" -maxdepth 1 -name "mt7927-wifi-${nn_dk}-*.patch" | head -1)
@@ -160,16 +227,14 @@ for i in "${!upstream_commits[@]}"; do
 		continue
 	fi
 
-	up_changes=$(grep -E '^\+[^+]|^-[^-]' "$up_file" |
-		sed 's/^[+-]//' | sort)
-	dk_changes=$(grep -E '^\+[^+]|^-[^-]' "$dk_file" |
-		sed 's/^[+-]//' | sort)
+	up_changes=$(_extract_changes "$up_file")
+	dk_changes=$(_extract_changes "$dk_file")
 
 	if [[ "$up_changes" == "$dk_changes" ]]; then
 		echo "  [$n] OK"
 	else
-		# Check if upstream is a subset of DKMS (DKMS may have
-		# extra lines from mt7902 conflict resolution)
+		# Upstream must be a subset of DKMS (DKMS may have extra
+		# lines from mt7902 conflict resolution)
 		missing=$(comm -23 <(echo "$up_changes") <(echo "$dk_changes"))
 		extra=$(comm -13 <(echo "$up_changes") <(echo "$dk_changes"))
 		if [[ -z "$missing" ]]; then
@@ -188,3 +253,4 @@ if ((errors > 0)); then
 	echo "FAILED: $errors error(s)"
 	exit 1
 fi
+echo "All patches verified. Upstream, DKMS, and git branch are consistent."
