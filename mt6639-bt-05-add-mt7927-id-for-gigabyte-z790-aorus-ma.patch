@@ -34,7 +34,7 @@ Signed-off-by: Javier Tia <floss@jetm.me>
 Tested-by: Chapuis Dario <chapuisdario4@gmail.com>
 Tested-by: Evgeny Kapusta <3193631@gmail.com>
 
-42436173fc0c4398107a701ebfab1f6dfa9b772a
+7d15cc964cda5b8ed039df62ebf1b5c0cd32fd03
 diff --git a/btusb.c b/btusb.c
 index 83064d2..3e920ca 100644
 --- a/btusb.c
