@@ -68,7 +68,7 @@ get_pci_id() {
 # 4. Module loading
 # ---------------------------------------------------------------------------
 check_modules() {
-	local expected=(mt7925e mt76 mt76_connac_lib mt792x_lib btusb btmtk)
+	local expected=(mt7925e mt7925_common mt76 mt76_connac_lib mt792x_lib btusb btmtk)
 	local loaded=()
 	local missing=()
 
@@ -108,10 +108,14 @@ check_dkms() {
 	fi
 
 	# Check for "installed" status for current kernel
-	if echo "$status" | has_match "installed"; then
+	local current_kernel
+	current_kernel="$(uname -r)"
+	if echo "$status" | has_match "${current_kernel}.*installed"; then
 		local ver
 		ver="$(echo "$status" | grep -oP 'mediatek-mt7927[,/]\s*\K[0-9.]+' | head -1 || true)"
-		ok "${ver:+v${ver}, }$(echo "$status" | grep -oP 'installed' | head -1)"
+		ok "${ver:+v${ver}, }installed"
+	elif echo "$status" | has_match "installed"; then
+		fail "installed for different kernel (not ${current_kernel})"
 	else
 		fail "$(echo "$status" | head -1)"
 	fi
@@ -276,8 +280,10 @@ check_bt_firmware() {
 		return
 	fi
 
-	# Check for successful HCI registration
-	if echo "$bt_dmesg" | has_match 'hci[0-9]'; then
+	# Check for successful HCI registration (MT6639-specific)
+	if echo "$bt_dmesg" | has_match 'hci[0-9].*Device setup\|hci[0-9].*AOSP extensions'; then
+		ok "loaded"
+	elif echo "$bt_dmesg" | has_match 'hci[0-9]'; then
 		ok "loaded"
 	else
 		na "no HCI device registered"
