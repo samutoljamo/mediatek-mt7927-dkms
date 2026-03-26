@@ -32,7 +32,7 @@ Link: https://bugzilla.kernel.org/show_bug.cgi?id=221096
 Link: https://github.com/openwrt/mt76/issues/927
 Signed-off-by: Javier Tia <floss@jetm.me>
 
-e54b33269c6566b88b559bd6732bb2f01be2a3f1
+7681a7ab17e24115d2cd8b291fc01ed37f7e0bb3
 diff --git a/btusb.c b/btusb.c
 index 3e920ca..3e97603 100644
 --- a/btusb.c
