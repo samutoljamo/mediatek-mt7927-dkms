@@ -14,7 +14,7 @@ PYTHON         ?= python3
 TOPDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 STAMP  := $(SRCDIR)/.sources-done
 
-.PHONY: download sources install clean rpm deb check-version
+.PHONY: download sources install clean rpm deb akmod check-version
 
 # ── download ────────────────────────────────────────────────────────
 download:
@@ -141,6 +141,10 @@ install: sources
 # ── rpm ─────────────────────────────────────────────────────────────
 rpm:
 	"$(TOPDIR)build-rpm.sh"
+
+# ── akmod (Fedora/akmods SRPM) ──────────────────────────────────────
+akmod:
+	"$(TOPDIR)build-akmod.sh"
 
 # ── deb ─────────────────────────────────────────────────────────────
 deb:

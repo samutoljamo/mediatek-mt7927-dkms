@@ -65,6 +65,28 @@ jobs:
             rpmbuild/RPMS/noarch/*.rpm \
             --repo "${{ github.repository }}"
 
+  build-akmod:
+    needs: create-release
+    runs-on: ubuntu-latest
+    container: fedora:43
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: dnf install -y rpm-build akmods make python3 curl git
+
+      - name: Build akmod SRPM
+        run: make akmod
+
+      - name: Upload akmod SRPM to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          dnf install -y gh
+          gh release upload "${{ needs.create-release.outputs.tag }}" \
+            rpmbuild/SRPMS/*.src.rpm \
+            --repo "${{ github.repository }}"
+
   build-deb:
     needs: create-release
     runs-on: ubuntu-latest
